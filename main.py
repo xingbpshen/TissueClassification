@@ -82,7 +82,6 @@ def main():
     test_dataset = CustomizedDataset(data_df, label_df, -0.1)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-    
 
 
 if __name__ == "__main__":
