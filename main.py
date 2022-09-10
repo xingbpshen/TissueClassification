@@ -80,6 +80,7 @@ def preprocess(path_d, path_l):
 def run(model, loss_func, optimizer, dataloader, batch_size, epoch, is_train):
     t_loader = tqdm(enumerate(dataloader), total=len(dataloader))
     loss_final = 0
+    accuracy_final = 0
     for i, (x, y) in t_loader:
         x = x.cuda()
         y = y.cuda()
@@ -92,23 +93,31 @@ def run(model, loss_func, optimizer, dataloader, batch_size, epoch, is_train):
             loss.backward()
             optimizer.step()
 
+        accuracy = compute_accuracy(y_pred, y)
         t_loader.set_description(
-            'Epoch {} {} Loss: {:.4f}'.format(epoch, (
-                'Train' if is_train else 'Test '), loss.item()))
+            'Epoch {} {} Loss: {:.4f} Accuracy: {:.4f}'.format(epoch, (
+                'Train' if is_train else 'Test '), loss.item(), accuracy))
 
         loss_final += loss.item()
-    loss_final = loss_final / len(dataloader)
+        accuracy_final += accuracy
+
+    loss_final, accuracy_final = loss_final / len(dataloader), accuracy_final / len(dataloader)
 
     if not is_train:
-        print('TESTING SET RESULTS: Average loss: {:.4f}'.format(
-            loss_final))
+        print('TESTING SET RESULTS: Average loss: {:.4f} Average accuracy: {:.4f}'.format(
+            loss_final, accuracy_final))
 
     torch.cuda.empty_cache()
 
 
 @torch.no_grad()
-def compute_accuracy():
-    return
+def compute_accuracy(y_pred, y):
+    batch_size = y_pred.size(0)
+    count = 0
+    for i in range(0, batch_size):
+        if torch.argmax(y_pred[i]) == torch.argmax(y[i]):
+            count += 1
+    return count / batch_size
 
 
 def train(model, loss, optimizer, train_loader, batch_size, epoch):
