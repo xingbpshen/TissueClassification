@@ -1,5 +1,6 @@
-torch
-pandas
-numpy
-torchtext
+torch~=1.12.1
+pandas~=1.4.4
+numpy~=1.23.2
+torchtext~=0.13.1
 torchvision
+tqdm~=4.64.1

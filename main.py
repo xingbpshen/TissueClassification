@@ -6,6 +6,8 @@ import numpy as np
 from typing import Union, Iterable
 from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator
+from mlp import MLP
+from tqdm.auto import tqdm
 
 
 class CustomizedDataset(Dataset):
@@ -75,13 +77,51 @@ def preprocess(path_d, path_l):
     return expr_df, tissue_df
 
 
+def run(model, loss_func, optimizer, dataloader, batch_size, epoch, is_train):
+    t_loader = tqdm(enumerate(dataloader), total=len(dataloader))
+    loss_final = 0
+    for i, (x, y) in t_loader:
+        optimizer.zero_grad()
+        y_pred = model(x)
+        loss = loss_func(y_pred.squeeze(), y)
+
+        if is_train:
+            loss.backward()
+            optimizer.step()
+
+        t_loader.set_description(
+            'Epoch {} {} Loss: {:.4f}'.format(epoch, (
+                'Train' if is_train else 'Test '), loss.item()))
+
+        loss_final += loss.item()
+        loss_final = loss_final / len(dataloader)
+
+        if not is_train:
+            print('TESTING SET RESULTS: Average loss: {:.4f}'.format(
+                loss_final))
+
+
 def main():
     batch_size = 10
+    lr = 2e-3
+    epoch_num = 40
+
     data_df, label_df = preprocess(path_d='data/CCLE_expression.csv', path_l='data/sample_info.csv')
     train_dataset = CustomizedDataset(data_df, label_df, 0.9)
     test_dataset = CustomizedDataset(data_df, label_df, -0.1)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+    m = train_dataset[0][0].shape[0]
+    n = train_dataset[0][1].shape[0]
+    model = MLP(m, n)
+    loss = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    run(model, loss, optimizer, train_loader, batch_size, 0, is_train=False)
+
+    for epoch in range(1, epoch_num + 1):
+        run(model, loss, optimizer, train_loader, batch_size, epoch, is_train=True)
 
 
 if __name__ == "__main__":
