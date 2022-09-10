@@ -16,9 +16,9 @@ class CustomizedDataset(Dataset):
         z_score = (data_temp - data_temp.mean()) / data_temp.std()
         min_max_normalization = (z_score - z_score.min()) / (z_score.max() - z_score.min())
         if per > 0:
-            self.x = min_max_normalization[:int(min_max_normalization.size(0) * per)]
+            self.x = z_score[:int(z_score.size(0) * per)]
         else:
-            self.x = min_max_normalization[int(min_max_normalization.size(0) * (1 + per)):]
+            self.x = z_score[int(z_score.size(0) * (1 + per)):]
 
         temp = np.array(label_df.values)
         temp = temp.flatten()
@@ -145,7 +145,7 @@ def main():
     model = MLP(m, n)
     model = model.cuda()
     loss = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     test(model, loss, optimizer, train_loader, batch_size, 0)
 
