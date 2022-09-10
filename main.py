@@ -85,8 +85,8 @@ def run(model, loss_func, optimizer, dataloader, batch_size, epoch, is_train):
         y = y.cuda()
         optimizer.zero_grad()
         y_pred = model(x)
-        # loss = loss_func(y_pred, y)
-        loss = torch.nn.functional.binary_cross_entropy(y_pred, y)
+        loss = loss_func(y_pred, y)
+        # loss = torch.nn.functional.binary_cross_entropy(y_pred, y)
 
         if is_train:
             loss.backward()
@@ -104,6 +104,20 @@ def run(model, loss_func, optimizer, dataloader, batch_size, epoch, is_train):
             loss_final))
 
     torch.cuda.empty_cache()
+
+
+@torch.no_grad()
+def compute_accuracy():
+    return
+
+
+def train(model, loss, optimizer, train_loader, batch_size, epoch):
+    run(model, loss, optimizer, train_loader, batch_size, epoch, is_train=True)
+
+
+@torch.no_grad()
+def test(model, loss, optimizer, test_loader, batch_size, epoch):
+    run(model, loss, optimizer, test_loader, batch_size, epoch, is_train=False)
 
 
 def main():
@@ -124,10 +138,11 @@ def main():
     loss = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
-    run(model, loss, optimizer, train_loader, batch_size, 0, is_train=False)
+    test(model, loss, optimizer, train_loader, batch_size, 0)
 
     for epoch in range(1, epoch_num + 1):
-        run(model, loss, optimizer, train_loader, batch_size, epoch, is_train=True)
+        train(model, loss, optimizer, train_loader, batch_size, epoch)
+        test(model, loss, optimizer, test_loader, batch_size, epoch)
 
 
 if __name__ == "__main__":

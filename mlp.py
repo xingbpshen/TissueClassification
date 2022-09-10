@@ -9,11 +9,11 @@ class MLP(torch.nn.Module):
         self.softmax = torch.nn.Softmax(dim=1)
         self.m = m
         self.n = n
-        self.h1 = L(self.m, 25000)
-        self.h2 = L(25000, 40000)
-        self.h3 = L(40000, 3000)
-        self.h4 = L(3000, 1500)
-        self.output = L(1500, self.n)
+        self.h1 = L(self.m, 4000)
+        self.h2 = L(4000, 1500)
+        self.h3 = L(1500, 500)
+        self.h4 = L(500, 200)
+        self.output = L(200, self.n)
 
     def forward(self, x):
         h1 = self.h1(x)
