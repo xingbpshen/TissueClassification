@@ -19,7 +19,6 @@ class CustomizedDataset(Dataset):
             self.x = min_max_normalization[:int(min_max_normalization.size(0) * per)]
         else:
             self.x = min_max_normalization[int(min_max_normalization.size(0) * (1 + per)):]
-        self.x = self.x.cuda()
 
         temp = np.array(label_df.values)
         temp = temp.flatten()
@@ -44,7 +43,6 @@ class CustomizedDataset(Dataset):
             self.y = label[:int(label.size(0) * per)]
         else:
             self.y = label[int(label.size(0) * (1 + per)):]
-        self.y = self.y.cuda()
 
     def __len__(self):
         return len(self.y)
@@ -83,9 +81,12 @@ def run(model, loss_func, optimizer, dataloader, batch_size, epoch, is_train):
     t_loader = tqdm(enumerate(dataloader), total=len(dataloader))
     loss_final = 0
     for i, (x, y) in t_loader:
+        x = x.cuda()
+        y = y.cuda()
         optimizer.zero_grad()
         y_pred = model(x)
-        loss = loss_func(y_pred.squeeze(), y)
+        # loss = loss_func(y_pred, y)
+        loss = torch.nn.functional.binary_cross_entropy(y_pred, y)
 
         if is_train:
             loss.backward()
@@ -96,16 +97,18 @@ def run(model, loss_func, optimizer, dataloader, batch_size, epoch, is_train):
                 'Train' if is_train else 'Test '), loss.item()))
 
         loss_final += loss.item()
-        loss_final = loss_final / len(dataloader)
+    loss_final = loss_final / len(dataloader)
 
-        if not is_train:
-            print('TESTING SET RESULTS: Average loss: {:.4f}'.format(
-                loss_final))
+    if not is_train:
+        print('TESTING SET RESULTS: Average loss: {:.4f}'.format(
+            loss_final))
+
+    torch.cuda.empty_cache()
 
 
 def main():
     batch_size = 10
-    lr = 2e-3
+    lr = 0.002
     epoch_num = 40
 
     data_df, label_df = preprocess(path_d='data/CCLE_expression.csv', path_l='data/sample_info.csv')
@@ -119,7 +122,7 @@ def main():
     model = MLP(m, n)
     model = model.cuda()
     loss = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
     run(model, loss, optimizer, train_loader, batch_size, 0, is_train=False)
 
