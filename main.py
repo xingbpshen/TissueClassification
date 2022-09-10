@@ -19,6 +19,7 @@ class CustomizedDataset(Dataset):
             self.x = min_max_normalization[:int(min_max_normalization.size(0) * per)]
         else:
             self.x = min_max_normalization[int(min_max_normalization.size(0) * (1 + per)):]
+        self.x = self.x.cuda()
 
         temp = np.array(label_df.values)
         temp = temp.flatten()
@@ -43,6 +44,7 @@ class CustomizedDataset(Dataset):
             self.y = label[:int(label.size(0) * per)]
         else:
             self.y = label[int(label.size(0) * (1 + per)):]
+        self.y = self.y.cuda()
 
     def __len__(self):
         return len(self.y)
@@ -115,6 +117,7 @@ def main():
     m = train_dataset[0][0].shape[0]
     n = train_dataset[0][1].shape[0]
     model = MLP(m, n)
+    model = model.cuda()
     loss = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
