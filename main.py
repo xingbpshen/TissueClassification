@@ -8,17 +8,18 @@ from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator
 from mlp import MLP
 from tqdm.auto import tqdm
+import wandb
 
 
 class CustomizedDataset(Dataset):
     def __init__(self, data_df, label_df, per):
         data_temp = torch.tensor(data_df.values, dtype=torch.float32)
-        z_score = (data_temp - data_temp.mean()) / data_temp.std()
-        min_max_normalization = (z_score - z_score.min()) / (z_score.max() - z_score.min())
+        # z_score = (data_temp - data_temp.mean()) / data_temp.std()
+        min_max_normalization = (data_temp - data_temp.min()) / (data_temp.max() - data_temp.min())
         if per > 0:
-            self.x = z_score[:int(z_score.size(0) * per)]
+            self.x = min_max_normalization[:int(min_max_normalization.size(0) * per)]
         else:
-            self.x = z_score[int(z_score.size(0) * (1 + per)):]
+            self.x = min_max_normalization[int(min_max_normalization.size(0) * (1 + per)):]
 
         temp = np.array(label_df.values)
         temp = temp.flatten()
@@ -103,9 +104,17 @@ def run(model, loss_func, optimizer, dataloader, batch_size, epoch, is_train):
 
     loss_final, accuracy_final = loss_final / len(dataloader), accuracy_final / len(dataloader)
 
-    if not is_train:
+    if is_train:
+        print('TRAINING SET RESULTS: Average loss: {:.4f} Average accuracy: {:.4f}'.format(
+            loss_final, accuracy_final))
+    else:
         print('TESTING SET RESULTS: Average loss: {:.4f} Average accuracy: {:.4f}'.format(
             loss_final, accuracy_final))
+
+    if is_train:
+        wandb.log({"train_loss": loss_final, "train_accuracy": accuracy_final})
+    else:
+        wandb.log({"test_loss": loss_final, "test_accuracy": accuracy_final})
 
     torch.cuda.empty_cache()
 
@@ -130,13 +139,20 @@ def test(model, loss, optimizer, test_loader, batch_size, epoch):
 
 
 def main():
-    batch_size = 10
+    batch_size = 20
     lr = 0.002
-    epoch_num = 40
+    epoch_num = 100
+
+    wandb.init(project="tissue_classification", entity="xingshen")
+    wandb.config = {
+        "learning_rate": lr,
+        "batch_size": batch_size,
+        "epochs": epoch_num
+    }
 
     data_df, label_df = preprocess(path_d='data/CCLE_expression.csv', path_l='data/sample_info.csv')
-    train_dataset = CustomizedDataset(data_df, label_df, 0.9)
-    test_dataset = CustomizedDataset(data_df, label_df, -0.1)
+    train_dataset = CustomizedDataset(data_df, label_df, 0.7)
+    test_dataset = CustomizedDataset(data_df, label_df, -0.3)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
